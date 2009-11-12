@@ -222,20 +222,20 @@
          */
         private function buildStock($array, $build_stock_table)
         {
-            $this->id = $array['id'];
-            $this->name = stripslashes($array['name']);
-            $this->ticker = $array['ticker'];
-            $this->description = stripslashes($array['description']);
-            $this->last_trade = $array['last_trade'];
+            $this->id                 = $array['id'];
+            $this->name               = stripslashes($array['name']);
+            $this->ticker             = $array['ticker'];
+            $this->description        = stripslashes($array['description']);
+            $this->last_trade         = $array['last_trade'];
             $this->earnings_per_share = $array['earnings_per_share'];
             $this->price_per_earnings = $array['price_per_earnings'];
-            $this->stock_exchange_id = $array['stock_exchange_id'];
-            $this->target_price = $array['target_price'];
-            $this->market_cap = $array['market_cap'];
-            $this->status = $array['status'];
-            $this->date_updated = $array['date_updated'];
-            $this->daily_data_date = $array['daily_data_date'];
-            $this->info_date = $array['info_date'];
+            $this->stock_exchange_id  = $array['stock_exchange_id'];
+            $this->target_price       = $array['target_price'];
+            $this->market_cap         = $array['market_cap'];
+            $this->status             = $array['status'];
+            $this->date_updated       = $array['date_updated'];
+            $this->daily_data_date    = $array['daily_data_date'];
+            $this->info_date          = $array['info_date'];
             
             if($this->stock_exchange_id != "" && $this->stock_exchange_id != null && $this->stock_exchange_id > 0)
             {
@@ -310,15 +310,15 @@
             }
             else
             {
-                $this->id = $mysql_array['id'];
-                $this->ticker_id = $mysql_array['ticker_id'];
-                $this->date = $mysql_array['date'];
-                $this->open = $mysql_array['open'];
-                $this->high = $mysql_array['high'];
-                $this->low = $mysql_array['low'];
-                $this->close = $mysql_array['close'];
+                $this->id             = $mysql_array['id'];
+                $this->ticker_id      = $mysql_array['ticker_id'];
+                $this->date           = $mysql_array['date'];
+                $this->open           = $mysql_array['open'];
+                $this->high           = $mysql_array['high'];
+                $this->low            = $mysql_array['low'];
+                $this->close          = $mysql_array['close'];
                 $this->adjusted_close = $mysql_array['adjusted_close'];
-                $this->volume = $mysql_array['volume'];
+                $this->volume         = $mysql_array['volume'];
             }
         }
         function getId()
@@ -418,7 +418,7 @@
                             date = '".$this->date."',
                             open = '".$this->open."',
                             high = '".$this->high."',
-                            low = '".$this->low."',
+                            low  = '".$this->low."',
                             close = '".$this->close."',
                             volume = '".$this->volume."',
                             adjusted_close = '".$this->adjusted_close."'
@@ -594,7 +594,14 @@
     }
     class Trade
     {
+        public $id;
+        public $stock_id;
+        public $portfolio_id;
+        public $bought_price;
+        public $sold_price;
         public $date;
+        public $date_string;
+        public $stock;
         
         function Trade()
         {
@@ -622,6 +629,72 @@
                 $this->id = -1;
             }
         }
+        function buildTrade($mysql_array)
+        {
+            $this->id           = $mysql_array['id'];
+            $this->stock_id     = $mysql_array['stock_id'];
+            $this->portfolio_id = $mysql_array['portfolio_id'];
+            $this->bought_price = $mysql_array['bought_price'];
+            $this->sold_price   = $mysql_array['sold_price'];
+            $this->date         = $mysql_array['date'];
+            
+            $this->stock        = new Stock($stock_id,false);
+            $this->date_string  = date("d F Y", $this->date);
+            
+        }
+        function buildFromPost()
+        {
+            if($_REQUEST['do'] == "processTrade")
+            {
+                $this->stock_id     = $_POST['stock_id'];
+                $this->portfolio_id = $_POST['portfolio_id'];
+                $this->bought_price = $_POST['bought_price'];
+                $this->sold_price   = $_POST['sold_price'];
+                $this->date_string  = $_POST['date_string'];
+                
+                
+                $this->date  = strtotime($this->date_string);
+                $this->stock = new Stock($this->stock_id);
+            }
+        }
+        function persist()
+        {
+            if($this->id < 0)
+            {
+                mysql_query("INSERT INTO trades
+                            (stock_id,portfolio_id,bought_price,sold_price,date)
+                            VALUES
+                            ('".$this->stock_id."','".$this->portfolio_id."','".$this->bought_price."','".$this->sold_price."','".$this->date."')") or die(mysql_error($query));
+                $this->id = mysql_insert_id();
+            }
+            else
+            {
+                mysql_query("UPDATE trades SET
+                            stock_id     = '".$this->stock_id."',
+                            portfolio_id = '".$this->portfolio_id."',
+                            bought_price = '".$this->bought_price."',
+                            sold_price   = '".$this->sold_price."',
+                            date         = '".$this->date."'
+                            WHERE id = '".$this->id."'
+                            ");
+            }
+        }
         
+    }
+    class FormBuilder
+    {
+        function portfolioCombo($identifier = 'portfolio_id')
+        {
+            $combo = '<select name="'.$identifier.'" id="'.$identifier.'">';
+            
+            $query = mysql_query("SELECT * FROM portfolio ORDER BY name ASC");
+            while ($array = mysql_fetch_array($query))
+            {
+                $portfolio = new Portfolio($array);
+                $combo .= '<option value="'.$portfolio->getId().'">'.$portfolio->getName().'</option>';
+            }
+            $combo .= '</select>';
+            return $combo;
+        }
     }
 ?>
