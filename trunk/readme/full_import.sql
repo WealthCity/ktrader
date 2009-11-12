@@ -3,6 +3,67 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
+-- Generation Time: Nov 12, 2009 at 01:47 PM
+-- Server version: 5.1.33
+-- PHP Version: 5.2.9-2
+
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+--
+-- Database: `ktrader_tracker`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `trades`
+--
+
+CREATE TABLE IF NOT EXISTS `trades` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `stock_id` int(10) NOT NULL,
+  `bought_price` double(6,2) NOT NULL,
+  `sold_price` double(6,2) NOT NULL,
+  `date` int(10) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+
+-- phpMyAdmin SQL Dump
+-- version 3.1.3.1
+-- http://www.phpmyadmin.net
+--
+-- Host: localhost
+-- Generation Time: Nov 12, 2009 at 01:25 PM
+-- Server version: 5.1.33
+-- PHP Version: 5.2.9-2
+
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+--
+-- Database: `ktrader_tracker`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `portfolio`
+--
+
+CREATE TABLE IF NOT EXISTS `portfolio` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` varchar(1024) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=5 ;
+
+-- phpMyAdmin SQL Dump
+-- version 3.1.3.1
+-- http://www.phpmyadmin.net
+--
+-- Host: localhost
 -- Generation Time: Nov 11, 2009 at 03:38 PM
 -- Server version: 5.1.33
 -- PHP Version: 5.2.9-2

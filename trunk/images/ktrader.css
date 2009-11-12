@@ -361,3 +361,26 @@ form.searchform input.button {
 .clear { clear: both; }
 .green {	color: #9EC630; }
 .gray  {	color: #BFBFBF; }
+
+/* FORM CLASSES */
+.table
+{
+	border-color: #A5A5A5;
+	border-width: 1px 1px 0 0;
+	border-style: solid;
+	margin-top: 10px;
+}
+.table_header
+{
+	background-color: #DDDBDB;
+	border-color: #A5A5A5;
+	border-width: 0 0 1px 1px;
+	border-style: solid;
+}
+.table_row
+{
+	border-color: #A5A5A5;
+	border-width: 0 0 1px 1px;
+	border-style: solid;
+	padding: 5px;
+}

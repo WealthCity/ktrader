@@ -446,6 +446,31 @@ function deactivateStock($stock_id)
         return "Removed Stock " . $stock->getTicker() . " (".$stock->getId().") due to a last closing price of $".$stock->getLastTrade();
     }
     return "";
+}
+function get_portfolio_list()
+{
+    $portfolioTable = '
+    <table class="table" width="720" cellspacing="0">
+        <tr>
+            <td width="100" class="table_header"><b>Name</b></td>
+            <td width="200" class="table_header"><b>Description</b></td>
+           
+        </tr>';
     
+    
+    $query = mysql_query("SELECT * FROM portfolio ORDER BY name ASC");
+    while ($array = mysql_fetch_array($query))
+    {
+        $portfolio = new Portfolio($array);
+        $portfolioTable .= '
+        <tr>
+            <td width="100" class="table_row">'.$portfolio->getName().'</td>
+            <td width="200" class="table_row">'.$portfolio->getDescription().'</td>
+        </tr>
+        ';        
+    }
+    $portfolioTable .= '</table>';
+    
+    return $portfolioTable;
 }
 ?>
