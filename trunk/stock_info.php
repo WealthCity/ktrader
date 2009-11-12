@@ -14,14 +14,24 @@
 	$stock = get_stock($ticker);
     
     $t = $_REQUEST['t'];
-    if($t == ""){$t = 20;}
+    if($t == "")
+    {
+        $t = 20;
+    }
     $tid = $_REQUEST['tid'];
-    $sa = $_REQUEST['sa'];
-    $sb = $_REQUEST['sb'];
-    $sc = $_REQUEST['sc'];
-    $sd = $_REQUEST['sd'];
-    $se = $_REQUEST['se'];
+    $sa  = $_REQUEST['sa'];
+    $sb  = $_REQUEST['sb'];
+    $sc  = $_REQUEST['sc'];
+    $sd  = $_REQUEST['sd'];
+    $se  = $_REQUEST['se'];
     $chart_url = urlencode('chart.php?t='.$t.'&tid='.$stock->getId().'&sa='.$sa.'&sb='.$sb.'&sc='.$sc.'&sd='.$sd.'&se='.$se);
+    
+    if($_REQUEST['do'] == 'processTrade')
+    {
+        $trade = new Trade();
+        $trade->buildFromPost();
+        $trade->persist();
+    }
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -44,9 +54,10 @@ swfobject.embedSWF(
     
   <?php include 'header.php'; ?>
   
-  <?php include 'navigation.php'; ?>
+  <?php include 'stock_info_navigation.php'; ?>
     
     <div id="main">
+        <div id="new_trade"></div>
         
        <?php
 			if(show_LoginForm() == false)

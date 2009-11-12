@@ -337,3 +337,36 @@ function portfolio_newPortfolio_response()
 
 }
 
+/**
+ * Cycle through stocks looking for inactive stocks to deactivate.
+ */ 
+function trade_newTrade(ticker, action_page)
+{
+    //Get our XML Object
+	xmlhttp=GetXmlHttpObject();
+	//Make sure we have javascript enabled.
+	if (xmlhttp==null)
+	{
+		alert ("Your browser does not support AJAX!");
+		return;
+	}
+	//Build URL to send to server
+	var url="ajax.php?do=showNewTrade&action_page="+action_page+"&t="+ticker;
+	//Link to function that receives response
+	xmlhttp.onreadystatechange=trade_newTrade_response;
+	//Open and Send AJAX request
+	xmlhttp.open("GET",url,true);
+	xmlhttp.send(null);
+}
+/**
+* Handle server reponse from trade_newTrade
+*/
+function trade_newTrade_response()
+{
+	//We are ready to change page html
+	if (xmlhttp.readyState==4)
+	{
+		document.getElementById("new_trade").innerHTML = xmlhttp.responseText;
+	}
+
+}

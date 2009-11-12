@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 12, 2009 at 01:47 PM
+-- Generation Time: Nov 12, 2009 at 02:40 PM
 -- Server version: 5.1.33
 -- PHP Version: 5.2.9-2
 
@@ -22,24 +22,14 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 CREATE TABLE IF NOT EXISTS `trades` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `stock_id` int(10) NOT NULL,
+  `portfolio_id` int(10) NOT NULL,
   `bought_price` double(6,2) NOT NULL,
   `sold_price` double(6,2) NOT NULL,
   `date` int(10) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=8 ;
 
-
--- phpMyAdmin SQL Dump
--- version 3.1.3.1
--- http://www.phpmyadmin.net
---
--- Host: localhost
--- Generation Time: Nov 12, 2009 at 01:25 PM
--- Server version: 5.1.33
--- PHP Version: 5.2.9-2
-
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 
 --
 -- Database: `ktrader_tracker`

@@ -78,4 +78,10 @@
     {
         include('html/portfolio_new.php');
     }
+    else if ($_REQUEST['do'] == 'showNewTrade')
+    {
+        $ticker = $_REQUEST['t'];
+        $stock = new Stock($ticker);
+        include('html/trade_new.php');
+    }
 ?>
