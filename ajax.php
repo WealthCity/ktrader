@@ -74,4 +74,8 @@
         echo $start . "||" .deactivateStock($start);
 
     }
+    else if($_REQUEST['do'] == 'showNewPortfolio')
+    {
+        include('html/portfolio_new.php');
+    }
 ?>

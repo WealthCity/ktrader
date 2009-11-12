@@ -19,8 +19,8 @@ echo '
       <li><a href="stock_list.php"><span>Stock List</span></a></li>
       <li><a href="#"><span>Reports</span></a></li>
       <li><a href="#"><span>Performance</span></a></li>
+      <li><a href="portfolio.php"><span>Portfolios</span></a></li>
       <li><a href="admin.php"><span>Admin</span></a></li>
-      <li><a href="#"><span>About</span></a></li>
     </ul>
   </div>
   <div id="content-wrap"> <img src="images/headerphoto.jpg" width="1200" height="120" alt="headerphoto" class="no-border" />

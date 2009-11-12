@@ -496,4 +496,132 @@
             }
         }
     }
+    /**
+     * A portfolio is simply a container class for trades.
+     **/
+    class Portfolio
+    {
+        private $id;
+        private $name;
+        private $description;
+        
+        function Portfolio($mysql_array)
+        {
+            if(is_array($mysql_array))
+            {
+                $this->buildPortfolio($mysql_array);
+            }
+            else if(is_numeric($mysql_array))
+            {
+                $query = mysql_query("SELECT * FROM portfolio WHERE id = '$mysql_array' LIMIT 1");
+                $array = mysql_fetch_array($query);
+                
+                //NO valid results
+                if($array == false)
+                {
+                    $this->id = -1;
+                }
+                else
+                {
+                   $this->buildPortfolio($array);
+                }
+            }
+            else
+            {
+                $this->id = -1;
+            }
+        }
+        function getId()
+        {
+            return $this->id;
+        }
+        function getName()
+        {
+            return $this->name;
+        }
+        function setName($name)
+        {
+            $this->name = $name;
+        }
+        function getDescription()
+        {
+            return $this->description;
+        }
+        function setDescription($description)
+        {
+            $this->description = $description;
+        }
+        /**
+         * Given a mysql result array, build an instance.
+         **/ 
+        function buildPortfolio($mysql_array)
+        {
+            $this->id = $mysql_array['id'];
+            $this->name = stripslashes($mysql_array['name']);
+            $this->description = stripslashes($mysql_array['description']);
+        }
+        /**
+         * Given an POST data, populate this instance.
+         **/ 
+        function buildFromPost()
+        {
+            $this->name = $_POST['name'];
+            $this->description = $_POST['description'];
+            
+        }
+        /**
+         * Smart function that will either insert into DB, or update if already
+         * exists.
+         **/
+        function persist()
+        {
+            if($this->id < 0)
+            {
+                 mysql_query("INSERT INTO portfolio
+                            (name, description)
+                            VALUES
+                            ('".addslashes($this->name)."','".addslashes($this->description)."')");
+                 $this->id = mysql_insert_id();
+            }
+            else
+            {
+                mysql_query("UPDATE portfolio SET
+                            name = '".addslashes($this->name)."',
+                            description = '".addslashes($this->description)."'
+                            WHERE id = '".$this->id."'");
+            }
+        }
+    }
+    class Trade
+    {
+        public $date;
+        
+        function Trade()
+        {
+            if(is_array($mysql_array))
+            {
+                $this->buildTrade($mysql_array);
+            }
+            else if(is_numeric($mysql_array))
+            {
+                $query = mysql_query("SELECT * FROM trades WHERE id = '$mysql_array' LIMIT 1");
+                $array = mysql_fetch_array($query);
+                
+                //NO valid results
+                if($array == false)
+                {
+                    $this->id = -1;
+                }
+                else
+                {
+                   $this->buildTrade($array);
+                }
+            }
+            else
+            {
+                $this->id = -1;
+            }
+        }
+        
+    }
 ?>

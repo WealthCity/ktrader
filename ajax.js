@@ -301,3 +301,39 @@ function changeChartTime(ticker, time)
 {
 	changeChart(ticker, time);
 }
+
+/**
+ * Cycle through stocks looking for inactive stocks to deactivate.
+ */ 
+function portfolio_newPortfolio()
+{
+    //Get our XML Object
+	xmlhttp=GetXmlHttpObject();
+	//Make sure we have javascript enabled.
+	if (xmlhttp==null)
+	{
+		alert ("Your browser does not support AJAX!");
+		return;
+	}
+	//Build URL to send to server
+	var url="ajax.php?do=showNewPortfolio";
+	//Link to function that receives response
+	xmlhttp.onreadystatechange=portfolio_newPortfolio_response;
+	//Open and Send AJAX request
+	xmlhttp.open("GET",url,true);
+	xmlhttp.send(null);
+}
+
+/**
+* Handle server reponse from portfolio_newPortfolio
+*/
+function portfolio_newPortfolio_response()
+{
+	//We are ready to change page html
+	if (xmlhttp.readyState==4)
+	{
+		document.getElementById("new_portfolio").innerHTML = xmlhttp.responseText;
+	}
+
+}
+
