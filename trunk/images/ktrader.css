@@ -113,7 +113,7 @@ label {
 	margin:5px 0;
 }
 input {
-	padding: 2px;
+	padding: 2px 2px 2px 8px;
 	border:1px solid #eee;
 	font: normal 1em Verdana, sans-serif;
 	color:#777;
@@ -383,4 +383,23 @@ form.searchform input.button {
 	border-width: 0 0 1px 1px;
 	border-style: solid;
 	padding: 5px;
+}
+.table_row_bottomless
+{
+	border-color: #A5A5A5;
+	border-width: 0 0 1px 1px;
+	border-style: solid;
+	padding: 5px;
+}
+.green_messagebox
+{
+	margin:10px; padding: 0;
+	border: 1px solid #067F11; 
+	background-color: #DDFFE0; 
+}
+.red_messagebox
+{
+	margin:10px; padding: 0;
+	border: 1px solid #9B0E0E; 
+	background-color: #FCC9C9; 
 }

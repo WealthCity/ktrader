@@ -370,3 +370,86 @@ function trade_newTrade_response()
 	}
 
 }
+function trade_hideTrade()
+{
+	document.getElementById("new_trade").innerHTML = "";
+}
+/**
+ * Show a list of trades for the given stock_id.
+ **/ 
+function trade_tradeStockList(stock_id, close_trade_id)
+{
+	//Get our XML Object
+	xmlhttp=GetXmlHttpObject();
+	//Make sure we have javascript enabled.
+	if (xmlhttp==null)
+	{
+		alert ("Your browser does not support AJAX!");
+		return;
+	}
+	//Build URL to send to server
+	var url="ajax.php?do=showTradeStockList&stock_id="+stock_id+"&close_trade_id="+close_trade_id;
+	//Link to function that receives response
+	xmlhttp.onreadystatechange=trade_tradeStockList_response;
+	//Open and Send AJAX request
+	xmlhttp.open("GET",url,true);
+	xmlhttp.send(null);
+}
+/**
+* Handle server reponse from trade_tradeStockList
+*/
+function trade_tradeStockList_response()
+{
+	//We are ready to change page html
+	if (xmlhttp.readyState==4)
+	{
+		document.getElementById("trade_list").innerHTML = xmlhttp.responseText;
+	}
+
+}
+/**
+ * Show a list of trades for the given portfolio_id.
+ **/ 
+function trade_tradePortfolioList(portfolio_id, close_trade_id)
+{
+	//Get our XML Object
+	xmlhttp=GetXmlHttpObject();
+	//Make sure we have javascript enabled.
+	if (xmlhttp==null)
+	{
+		alert ("Your browser does not support AJAX!");
+		return;
+	}
+	//Build URL to send to server
+	var url="ajax.php?do=showTradePortfolioList&portfolio_id="+portfolio_id+"&close_trade_id="+close_trade_id;
+	//Link to function that receives response
+	xmlhttp.onreadystatechange=trade_tradePortfolioList_response;
+	//Open and Send AJAX request
+	xmlhttp.open("GET",url,true);
+	xmlhttp.send(null);
+}
+/**
+* Handle server reponse from trade_tradeList
+*/
+function trade_tradePortfolioList_response()
+{
+	//We are ready to change page html
+	if (xmlhttp.readyState==4)
+	{
+		document.getElementById("trade_list").innerHTML = xmlhttp.responseText;
+	}
+
+}
+function trade_closeList()
+{
+	document.getElementById("trade_list").innerHTML = '';
+}
+/**
+ * On our new Trade form we can enter total capital to put towards trade,
+ * and stock price at time of buying. This will calculate the # of stocks
+ * that will purchase.
+ **/ 
+function calculateTradeForm()
+{
+	document.getElementById("number_of_stocks").value = document.getElementById("total_price").value / document.getElementById("bought_price").value;
+}

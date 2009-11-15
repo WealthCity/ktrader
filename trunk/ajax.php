@@ -84,4 +84,16 @@
         $stock = new Stock($ticker);
         include('html/trade_new.php');
     }
+    else if($_REQUEST['do'] == 'showTradeStockList')
+    {
+        $stock_id = $_REQUEST['stock_id'];
+        $close_trade_id = $_REQUEST['close_trade_id'];
+        echo get_trade_list_from_stock($stock_id, $close_trade_id);
+    }
+    else if($_REQUEST['do'] == 'showTradePortfolioList')
+    {
+        $portfolio_id = $_REQUEST['portfolio_id'];
+        $close_trade_id = $_REQUEST['close_trade_id'];
+        echo get_trade_list_from_portfolio($portfolio_id, $close_trade_id);
+    }
 ?>
