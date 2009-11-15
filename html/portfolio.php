@@ -1,3 +1,3 @@
 <?php
-    echo $portfolioTable;
+    echo '<div id="trade_list">'.$portfolioTable.'</div>';
 ?>

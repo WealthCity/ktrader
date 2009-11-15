@@ -6,10 +6,36 @@
     if($_REQUEST['do'] == "processForm")
     {
         $portfolio = new Portfolio();
-        $portfolio->buildFromPost();
-        $portfolio->persist();
+        $message = $portfolio->buildFromPost();
+        if($message == "")
+        {
+            $message = "Successfully aded portfolio!";
+            include 'html/green_messagebox.php';
+            $portfolio->persist();
+        }
+        else
+        {
+            include 'html/red_messagebox.php';
+        }
     }
-                
+    if($_REQUEST['do'] == 'closeTrade')
+    {
+        $trade_id = $_POST['trade_id'];
+        $trade = new Trade($trade_id);
+        
+        $message = $trade->closeTrade();
+        
+        if($message == "")
+        {
+            $trade->persist();
+            $message = "Successfully closed trade.";
+            include 'html/green_messagebox.php';
+        }
+        else
+        {
+            include 'html/red_messagebox.php';
+        }
+    }            
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -36,7 +62,15 @@
             
 			if(show_LoginForm() == false)
 			{
-                $portfolioTable = get_portfolio_list();
+                $portfolio_id = $_REQUEST['portfolio_id'];
+                if(is_numeric($portfolio_id) && $portfolio_id > -1)
+                {
+                    $portfolioTable = get_trade_list_from_portfolio($portfolio_id, -1);
+                }
+                else
+                {
+                    $portfolioTable = get_portfolio_list();
+                }
                 include 'html/portfolio.php';
                 
 			}

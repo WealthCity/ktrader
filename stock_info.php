@@ -29,8 +29,35 @@
     if($_REQUEST['do'] == 'processTrade')
     {
         $trade = new Trade();
-        $trade->buildFromPost();
-        $trade->persist();
+        $message = $trade->buildFromPost();
+        if($message == "")
+        {
+            $trade->persist();
+            $message = "Successfully added trade.";
+            include 'html/green_messagebox.php';
+        }
+        else
+        {
+            include 'html/red_messagebox.php';
+        }
+    }
+    if($_REQUEST['do'] == 'closeTrade')
+    {
+        $trade_id = $_POST['trade_id'];
+        $trade = new Trade($trade_id);
+        
+        $message = $trade->closeTrade();
+        
+        if($message == "")
+        {
+            $trade->persist();
+            $message = "Successfully closed trade.";
+            include 'html/green_messagebox.php';
+        }
+        else
+        {
+            include 'html/red_messagebox.php';
+        }
     }
 ?>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -58,6 +85,7 @@ swfobject.embedSWF(
     
     <div id="main">
         <div id="new_trade"></div>
+        <div id="trade_list"></div>
         
        <?php
 			if(show_LoginForm() == false)

@@ -447,14 +447,21 @@ function deactivateStock($stock_id)
     }
     return "";
 }
+/**
+ * Will return an HTML formatted list of all portfolio's in our system.
+ */ 
 function get_portfolio_list()
 {
     $portfolioTable = '
     <table class="table" width="720" cellspacing="0">
         <tr>
-            <td width="100" class="table_header"><b>Name</b></td>
-            <td width="200" class="table_header"><b>Description</b></td>
-           
+            <td width="75" class="table_header"><b>Name</b></td>
+            <td width="60" class="table_header"><b>Open Trades</b></td>
+            <td width="60" class="table_header"><b>Closed Trades</b></td>
+            <td width="60" class="table_header"><b>Opening Capital</b></td>
+            <td width="60" class="table_header"><b>Account Value</b></td>
+            <td width="60" class="table_header"><b>Current Cash</b></td>
+            <td width="60" class="table_header"><b>Net Gain/Loss</b></td>
         </tr>';
     
     
@@ -462,15 +469,262 @@ function get_portfolio_list()
     while ($array = mysql_fetch_array($query))
     {
         $portfolio = new Portfolio($array);
+        $portfolio->runCapitalReport();
         $portfolioTable .= '
         <tr>
-            <td width="100" class="table_row">'.$portfolio->getName().'</td>
-            <td width="200" class="table_row">'.$portfolio->getDescription().'</td>
+            <td width="75" class="table_row"><a href="portfolio.php?portfolio_id='.$portfolio->id.'">'.$portfolio->name.'</a></td>
+            <td width="60" class="table_row">'.$portfolio->getNumOpenTrades().'</td>
+            <td width="60" class="table_row">'.$portfolio->getNumClosedTrades().'</td>
+            <td width="60" class="table_row">$'.round($portfolio->opening_capital,2).'</td>
+            <td width="60" class="table_row">$'.round($portfolio->account_value,2).'</td>
+            <td width="60" class="table_row">$'.round($portfolio->current_cash,2).'</td>
+            <td width="60" class="table_row">$'.round($portfolio->account_value - $portfolio->opening_capital,2).'</td>
         </tr>
         ';        
     }
     $portfolioTable .= '</table>';
     
     return $portfolioTable;
+}
+/**
+ * @param Mixed $stock Can be either a stock ID or an instance of stock class.
+ * @return HTML formatted list of trades attached to this stock.
+ **/ 
+function get_trade_list_from_stock($stock, $close_trade_id = -1)
+{
+    if(is_numeric($stock))
+    {
+        $stock = new Stock($stock);
+    }
+    $tradeTable = '
+    <input type="submit" value="Close Trades" onclick="trade_closeList();return false;" />
+    <h2>Open Trades</h2>
+    <table class="table" width="720" cellspacing="0">
+        <tr>
+            <td width="75" class="table_header"><b>Date</b></td>
+            <td width="60" class="table_header"><b># of Stocks</b></td>
+            <td width="60" class="table_header"><b>Bought Price</b></td>
+            <td width="60" class="table_header"><b>Current Price</b></td>
+            <td width="60" class="table_header"><b>Gain/Loss</b></td>
+            <td width="60" class="table_header"><b>Portfolio</b></td>
+            <td width="60" class="table_header"><b>Action</b></td>
+        </tr>
+    ';
+    $query = mysql_query("SELECT * FROM trades WHERE stock_id = '".$stock->getId()."' AND sold_price < 0.01 ORDER BY bought_date DESC");
+    if(mysql_num_rows($query) < 1)
+    {
+        $tradeTable .= '<tr><td width="100%" class="table_row" colspan="7">No Open Trades</td></tr>';
+    }
+    while ($array = mysql_fetch_array($query))
+    {
+        $trade = new Trade($array);
+        $ticker = $trade->stock->getTicker();
+        update_stock_info($ticker);
+        $trade->stock = new Stock($ticker);
+        $portfolio = new Portfolio($trade->portfolio_id);
+        if($close_trade_id == $trade->id)
+        {
+            $tradeTable .= '
+            <tr>
+                <td width="75" class="table_row_bottomless">'.$trade->bought_date_string.'</td>
+                <td width="60" class="table_row_bottomless">'.$trade->number_of_stocks.'</td>
+                <td width="60" class="table_row_bottomless">'.$trade->bought_price.'</td>
+                <td width="60" class="table_row_bottomless">'.$trade->stock->getLastTrade().'</td>
+                <td width="60" class="table_row_bottomless">'.round((($trade->stock->getLastTrade() - $trade->bought_price) * $trade->number_of_stocks),2).'</td>
+                <td width="60" class="table_row_bottomless">'.$portfolio->name.'</td>
+                <td width="60" class="table_row_bottomless"><input type="submit" value="Cancel" onClick="trade_tradeStockList('.$stock->getId().',-1);return false;"</td>
+            </tr>';
+            $tradeTable .= '
+            <tr>
+                <td width="100%" colspan="7" class="table_row">
+                    <form action="stock_info.php?do=closeTrade&s='.$trade->stock->getTicker().'" method="POST">
+                        <p>
+                            <input type="hidden" value="'.$trade->id.'" name="trade_id" id="trade_id"/>
+                            <label>Close Date</label>
+                            <input type="text" id="sold_date_string" name="sold_date_string" />
+                            <label>Close Price</label>
+                            <input type="text" id="sold_price" name="sold_price" />
+                            <label>Save</label>
+                            <input type="submit" value="Close Trades" />
+                        </p>
+                    </form>
+                </td>
+            </tr>
+            ';
+        }
+        else
+        {
+            $tradeTable .= '
+            <tr>
+                <td width="75" class="table_row">'.$trade->bought_date_string.'</td>
+                <td width="60" class="table_row">'.$trade->number_of_stocks.'</td>
+                <td width="60" class="table_row">'.$trade->bought_price.'</td>
+                <td width="60" class="table_row">'.$trade->stock->getLastTrade().'</td>
+                <td width="60" class="table_row">'.round((($trade->stock->getLastTrade() - $trade->bought_price) * $trade->number_of_stocks),2).'</td>
+                <td width="60" class="table_row">'.$portfolio->name.'</td>
+                <td width="60" class="table_row"><input type="submit" value="Close" onClick="trade_tradeStockList('.$stock->getId().','.$trade->id.');return false;"</td>
+            </tr>';    
+        }
+        
+        
+    }
+    $tradeTable .= '</table>';
+    $tradeTable .= '
+    <h2>Closed Trades</h2>
+    <table class="table" width="720" cellspacing="0">
+        <tr>
+            <td width="75" class="table_header"><b>Date Bought</b></td>
+            <td width="60" class="table_header"><b># of Stocks</b></td>
+            <td width="60" class="table_header"><b>Bought Price</b></td>
+            <td width="60" class="table_header"><b>Sold Price</b></td>
+            <td width="60" class="table_header"><b>Sold Date</b></td>
+            <td width="60" class="table_header"><b>Gain/Loss</b></td>
+            <td width="60" class="table_header"><b>Portfolio</b></td>
+        </tr>
+    ';
+    
+    $query = mysql_query("SELECT * FROM trades WHERE stock_id = '".$stock->getId()."' AND sold_price > 0.00 ORDER BY bought_date DESC");
+    if(mysql_num_rows($query) < 1)
+    {
+        $tradeTable .= '<tr><td width="100%" class="table_row" colspan="8">No Closed Trades</td></tr>';
+    }
+    while ($array = mysql_fetch_array($query))
+    {
+        $trade = new Trade($array);
+        $portfolio = new Portfolio($trade->portfolio_id);
+
+        $tradeTable .= '
+        <tr>
+            <td width="75" class="table_row">'.$trade->bought_date_string.'</td>
+            <td width="60" class="table_row">'.$trade->number_of_stocks.'</td>
+            <td width="60" class="table_row">'.$trade->bought_price.'</td>
+            <td width="60" class="table_row">'.$trade->sold_price.'</td>
+            <td width="60" class="table_row">'.$trade->sold_date_string.'</td>
+            <td width="60" class="table_row">'.round( ($trade->sold_price - $trade->bought_price)*$trade->number_of_stocks,2).'</td>
+            <td width="60" class="table_row">'.$portfolio->name.'</td>
+        </tr>';
+    }
+    $tradeTable .= '</table>';
+    return $tradeTable;
+}
+/**
+ * @param Mixed $stock Can be either a stock ID or an instance of stock class.
+ * @return HTML formatted list of trades attached to this stock.
+ **/ 
+function get_trade_list_from_portfolio($portfolio, $close_trade_id = -1)
+{
+    if(is_numeric($portfolio))
+    {
+        $portfolio = new Portfolio($portfolio);
+    }
+    $tradeTable = '
+    
+    <h2>Open Trades</h2>
+    <table class="table" width="720" cellspacing="0">
+        <tr>
+            <td width="75" class="table_header"><b>Date</b></td>
+            <td width="60" class="table_header"><b># of Stocks</b></td>
+            <td width="60" class="table_header"><b>Bought Price</b></td>
+            <td width="60" class="table_header"><b>Current Price</b></td>
+            <td width="60" class="table_header"><b>Gain/Loss</b></td>
+            <td width="60" class="table_header"><b>Portfolio</b></td>
+            <td width="60" class="table_header"><b>Action</b></td>
+        </tr>
+    ';
+    $query = mysql_query("SELECT * FROM trades WHERE portfolio_id = '".$portfolio->id."' AND sold_price < 0.01 ORDER BY bought_date DESC");
+    if(mysql_num_rows($query) < 1)
+    {
+        $tradeTable .= '<tr><td width="100%" class="table_row" colspan="7">No Open Trades</td></tr>';
+    }
+    while ($array = mysql_fetch_array($query))
+    {
+        $trade = new Trade($array);
+        $ticker = $trade->stock->getTicker();
+        update_stock_info($ticker);
+        $trade->stock = new Stock($ticker);
+        
+        if($close_trade_id == $trade->id)
+        {
+            $tradeTable .= '
+            <tr>
+                <td width="75" class="table_row_bottomless">'.$trade->bought_date_string.'</td>
+                <td width="60" class="table_row_bottomless">'.$trade->number_of_stocks.'</td>
+                <td width="60" class="table_row_bottomless">'.$trade->bought_price.'</td>
+                <td width="60" class="table_row_bottomless">'.$trade->stock->getLastTrade().'</td>
+                <td width="60" class="table_row_bottomless">'.round((($trade->stock->getLastTrade() - $trade->bought_price) * $trade->number_of_stocks),2).'</td>
+                <td width="60" class="table_row_bottomless">'.$portfolio->name.'</td>
+                <td width="60" class="table_row_bottomless"><input type="submit" value="Cancel" onClick="trade_tradePortfolioList('.$portfolio->id.',-1);return false;"</td>
+            </tr>';
+            $tradeTable .= '
+            <tr>
+                <td width="100%" colspan="7" class="table_row">
+                    <form action="portfolio.php?do=closeTrade&portfolio_id='.$portfolio->id.'" method="POST">
+                        <p>
+                            <input type="hidden" value="'.$trade->id.'" name="trade_id" id="trade_id"/>
+                            <label>Close Date</label>
+                            <input type="text" id="sold_date_string" name="sold_date_string" />
+                            <label>Close Price</label>
+                            <input type="text" id="sold_price" name="sold_price" />
+                            <label>Save</label>
+                            <input type="submit" value="Close Trades" />
+                        </p>
+                    </form>
+                </td>
+            </tr>
+            ';
+        }
+        else
+        {
+            $tradeTable .= '
+            <tr>
+                <td width="75" class="table_row">'.$trade->bought_date_string.'</td>
+                <td width="60" class="table_row">'.$trade->number_of_stocks.'</td>
+                <td width="60" class="table_row">'.$trade->bought_price.'</td>
+                <td width="60" class="table_row">'.$trade->stock->getLastTrade().'</td>
+                <td width="60" class="table_row">'.round((($trade->stock->getLastTrade() - $trade->bought_price) * $trade->number_of_stocks),2).'</td>
+                <td width="60" class="table_row">'.$portfolio->name.'</td>
+                <td width="60" class="table_row"><input type="submit" value="Close" onClick="trade_tradePortfolioList('.$portfolio->id.','.$trade->id.');return false;"</td>
+            </tr>';    
+        }
+        
+        
+    }
+    $tradeTable .= '</table>';
+    $tradeTable .= '
+    <h2>Closed Trades</h2>
+    <table class="table" width="720" cellspacing="0">
+        <tr>
+            <td width="75" class="table_header"><b>Date Bought</b></td>
+            <td width="60" class="table_header"><b># of Stocks</b></td>
+            <td width="60" class="table_header"><b>Bought Price</b></td>
+            <td width="60" class="table_header"><b>Sold Price</b></td>
+            <td width="60" class="table_header"><b>Sold Date</b></td>
+            <td width="60" class="table_header"><b>Gain/Loss</b></td>
+            <td width="60" class="table_header"><b>Portfolio</b></td>
+        </tr>
+    ';
+    
+    $query = mysql_query("SELECT * FROM trades WHERE portfolio_id = '".$portfolio->id."' AND sold_price > 0.00 ORDER BY bought_date DESC");
+    if(mysql_num_rows($query) < 1)
+    {
+        $tradeTable .= '<tr><td width="100%" class="table_row" colspan="8">No Closed Trades</td></tr>';
+    }
+    while ($array = mysql_fetch_array($query))
+    {
+        $trade = new Trade($array);
+
+        $tradeTable .= '
+        <tr>
+            <td width="75" class="table_row">'.$trade->bought_date_string.'</td>
+            <td width="60" class="table_row">'.$trade->number_of_stocks.'</td>
+            <td width="60" class="table_row">'.$trade->bought_price.'</td>
+            <td width="60" class="table_row">'.$trade->sold_price.'</td>
+            <td width="60" class="table_row">'.$trade->sold_date_string.'</td>
+            <td width="60" class="table_row">'.round( ($trade->sold_price - $trade->bought_price)*$trade->number_of_stocks,2).'</td>
+            <td width="60" class="table_row">'.$portfolio->name.'</td>
+        </tr>';
+    }
+    $tradeTable .= '</table><br /><br />';
+    return $tradeTable;
 }
 ?>

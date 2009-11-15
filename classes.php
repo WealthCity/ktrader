@@ -21,7 +21,7 @@
     
     class Stock
     {
-        private $id;
+        public $id;
         private $ticker;
         private $name;
         private $description;
@@ -501,9 +501,18 @@
      **/
     class Portfolio
     {
-        private $id;
-        private $name;
-        private $description;
+        public $id;
+        public $name;
+        public $description;
+        public $opening_capital;
+        
+        //NON DB Variables
+        public $num_open_trades = 0;
+        public $num_closed_trades = 0;
+        public $account_value = 0;
+        public $outstanding_capital = 0;
+        public $current_cash = 0;
+        public $current_profit = 0;
         
         function Portfolio($mysql_array)
         {
@@ -531,26 +540,6 @@
                 $this->id = -1;
             }
         }
-        function getId()
-        {
-            return $this->id;
-        }
-        function getName()
-        {
-            return $this->name;
-        }
-        function setName($name)
-        {
-            $this->name = $name;
-        }
-        function getDescription()
-        {
-            return $this->description;
-        }
-        function setDescription($description)
-        {
-            $this->description = $description;
-        }
         /**
          * Given a mysql result array, build an instance.
          **/ 
@@ -559,15 +548,30 @@
             $this->id = $mysql_array['id'];
             $this->name = stripslashes($mysql_array['name']);
             $this->description = stripslashes($mysql_array['description']);
+            $this->opening_capital = $mysql_array['opening_capital'];
         }
         /**
          * Given an POST data, populate this instance.
+         * @return String Blank String on success, failure message on failure.
          **/ 
         function buildFromPost()
         {
-            $this->name = $_POST['name'];
-            $this->description = $_POST['description'];
-            
+            if($_REQUEST['do'] == 'processForm')
+            {
+                $this->name = $_POST['name'];
+                $this->description = $_POST['description'];
+                $this->opening_capital = $_POST['opening_capital'];
+                
+                if($this->name == "" || $this->description == "")
+                {
+                    return "Both name and description must be filled in.";
+                }
+                if(!is_numeric($this->opening_capital))
+                {
+                    return "Opening capital must be a number.";
+                }
+                return "";
+            }
         }
         /**
          * Smart function that will either insert into DB, or update if already
@@ -578,18 +582,84 @@
             if($this->id < 0)
             {
                  mysql_query("INSERT INTO portfolio
-                            (name, description)
+                            (name, description,opening_capital)
                             VALUES
-                            ('".addslashes($this->name)."','".addslashes($this->description)."')");
+                            ('".addslashes($this->name)."','".addslashes($this->description)."','".$this->opening_capital."')");
                  $this->id = mysql_insert_id();
             }
             else
             {
                 mysql_query("UPDATE portfolio SET
                             name = '".addslashes($this->name)."',
-                            description = '".addslashes($this->description)."'
+                            description = '".addslashes($this->description)."',
+                            opening_capital = '".$this->opening_capital."'
                             WHERE id = '".$this->id."'");
             }
+        }
+        /**
+         * Get the number active (or open) trades associated
+         * with this portfolio.
+         **/ 
+        function getNumOpenTrades()
+        {
+            if($this->num_open_trades > 0)
+            {
+                return $this->num_open_trades;
+            }
+            $query = mysql_query("SELECT id FROM trades WHERE sold_price < 0.01 AND portfolio_id = '".$this->id."'");
+            $this->num_open_trades =  mysql_num_rows($query);
+            return $this->num_open_trades;
+        }
+        /**
+         * Get the number of closed trades associated with
+         * this portfolio.
+         **/ 
+        function getNumClosedTrades()
+        {
+            if($this->num_closed_trades > 0)
+            {
+                return $this->num_closed_trades;
+            }
+            $query = mysql_query("SELECT id FROM trades WHERE sold_price > 0.00 AND portfolio_id = '".$this->id."'");
+            $this->num_closed_trades =  mysql_num_rows($query);
+            return $this->num_closed_trades;
+        }
+        /**
+         * Calculate current capital, current outstanding capital, current profit/loss.
+         **/ 
+        function runCapitalReport()
+        {
+            
+            $query = mysql_query("SELECT * FROM trades WHERE portfolio_id = '".$this->id."'");
+            $trade_profit = 0;
+            $cash_out = 0;
+            $open_trade_profit = 0;
+            while($array = mysql_fetch_array($query))
+            {
+                $trade = new Trade($array);
+                
+                
+                //Closed Trade
+                if($trade->sold_price > 0.00)
+                {
+                    $trade_profit += ($trade->sold_price - $trade->bought_price) * $trade->number_of_stocks;                    
+
+                }
+                else
+                {
+                    $ticker = $trade->stock->getTicker();
+                    update_stock_info($ticker);
+                    $trade->stock = new Stock($ticker);
+                    //Open Trade
+                    $open_trade_profit += ($trade->number_of_stocks * ($trade->stock->getLastTrade() - $trade->bought_price));
+                    $cash_out += ($trade->bought_price * $trade->number_of_stocks);
+                }
+                
+            }
+            
+            $this->current_cash = $this->opening_capital + $trade_profit - $cash_out;
+            $this->account_value = $this->opening_capital + $trade_profit + $open_trade_profit;
+            
         }
     }
     class Trade
@@ -597,13 +667,16 @@
         public $id;
         public $stock_id;
         public $portfolio_id;
+        public $number_of_stocks;
         public $bought_price;
         public $sold_price;
-        public $date;
-        public $date_string;
+        public $bought_date;
+        public $bought_date_string;
+        public $sold_date;
+        public $sold_date_string;
         public $stock;
         
-        function Trade()
+        function Trade($mysql_array = null)
         {
             if(is_array($mysql_array))
             {
@@ -631,30 +704,89 @@
         }
         function buildTrade($mysql_array)
         {
-            $this->id           = $mysql_array['id'];
-            $this->stock_id     = $mysql_array['stock_id'];
-            $this->portfolio_id = $mysql_array['portfolio_id'];
-            $this->bought_price = $mysql_array['bought_price'];
-            $this->sold_price   = $mysql_array['sold_price'];
-            $this->date         = $mysql_array['date'];
+            $this->id               = $mysql_array['id'];
+            $this->stock_id         = $mysql_array['stock_id'];
+            $this->portfolio_id     = $mysql_array['portfolio_id'];
+            $this->number_of_stocks = $mysql_array['number_of_stocks'];
+            $this->bought_price     = $mysql_array['bought_price'];
+            $this->sold_price       = $mysql_array['sold_price'];
+            $this->bought_date      = $mysql_array['bought_date'];
+            $this->sold_date        = $mysql_array['sold_date'];
             
-            $this->stock        = new Stock($stock_id,false);
-            $this->date_string  = date("d F Y", $this->date);
-            
+            $this->stock              = new Stock($this->stock_id,false);
+            $this->bought_date_string = date("d F Y", $this->bought_date);
+            $this->sold_date_string   = date("d F Y", $this->sold_date);
         }
+        /**
+         * Will get data necessary to trade from POST variables.
+         **/ 
+        function closeTrade()
+        {
+            if($this->id < 1)
+            {
+                return "There was a fatal problem. There was no attached Trade.";
+            }
+            
+            if($_REQUEST['do'] == "closeTrade")
+            {
+                $this->sold_price = $_POST['sold_price'];
+                $this->sold_date_string = $_POST['sold_date_string'];
+                
+                $this->sold_date = strtotime($this->sold_date_string);
+                
+                if(!is_numeric($this->sold_price))
+                {
+                    return "Sold price must be a number.";
+                }
+                if($this->sold_date == false || $this->sold_date == -1)
+                {
+                    return "Close date was not recognized. Try form 12 November, 2009";
+                }
+                return "";
+            }
+        }
+        /**
+         * Will build instance of Trade from $_POST variables.
+         * @return String Blank string on success, status string on failure.
+         **/ 
         function buildFromPost()
         {
+            //Make sure aren't calling this function by accident.
             if($_REQUEST['do'] == "processTrade")
             {
-                $this->stock_id     = $_POST['stock_id'];
-                $this->portfolio_id = $_POST['portfolio_id'];
-                $this->bought_price = $_POST['bought_price'];
-                $this->sold_price   = $_POST['sold_price'];
-                $this->date_string  = $_POST['date_string'];
+                $this->stock_id           = $_POST['stock_id'];
+                $this->portfolio_id       = $_POST['portfolio_id'];
+                $this->number_of_stocks   = $_POST['number_of_stocks'];
+                $this->bought_price       = $_POST['bought_price'];
+                $this->sold_price         = $_POST['sold_price'];
+                $this->bought_date_string = $_POST['bought_date_string'];
                 
+                $this->bought_date  = strtotime($this->bought_date_string);
+                $this->stock        = new Stock($this->stock_id);
                 
-                $this->date  = strtotime($this->date_string);
-                $this->stock = new Stock($this->stock_id);
+                if( !$this->stock_id || !$this->portfolio_id)
+                {
+                    return "There was a fatal error. Either stock_id or portfolio_id was not set.";
+                }
+                if(!is_numeric($this->number_of_stocks) || !is_numeric($this->bought_price))
+                {
+                    return "Both number of stocks and bought price has to be numeric.";
+                }
+                if($this->number_of_stocks < 0.01 || $this->bought_price < 0.01)
+                {
+                    return "Both number of stocks and bought price has to be above 0.";
+                }
+                if($this->bought_date == false || $this->bought_date == -1)
+                {
+                    return "Provided date was invalid.";
+                }
+                $portfolio = new Portfolio($this->portfolio_id);
+                $portfolio->runCapitalReport();
+                if($portfolio->current_cash < ($this->bought_price * $this->number_of_stocks))
+                {
+                    return "Selected profile does not have enough available cash to purchase this stock.";
+                }
+                return "";
             }
         }
         function persist()
@@ -662,19 +794,21 @@
             if($this->id < 0)
             {
                 mysql_query("INSERT INTO trades
-                            (stock_id,portfolio_id,bought_price,sold_price,date)
+                            (stock_id,portfolio_id,number_of_stocks,bought_price,sold_price,bought_date)
                             VALUES
-                            ('".$this->stock_id."','".$this->portfolio_id."','".$this->bought_price."','".$this->sold_price."','".$this->date."')") or die(mysql_error($query));
+                            ('".$this->stock_id."','".$this->portfolio_id."','".$this->number_of_stocks."','".$this->bought_price."','".$this->sold_price."','".$this->bought_date."')") or die(mysql_error($query));
                 $this->id = mysql_insert_id();
             }
             else
             {
                 mysql_query("UPDATE trades SET
-                            stock_id     = '".$this->stock_id."',
-                            portfolio_id = '".$this->portfolio_id."',
-                            bought_price = '".$this->bought_price."',
-                            sold_price   = '".$this->sold_price."',
-                            date         = '".$this->date."'
+                            stock_id         = '".$this->stock_id."',
+                            portfolio_id     = '".$this->portfolio_id."',
+                            number_of_stocks = '".$this->number_of_stocks."',
+                            bought_price     = '".$this->bought_price."',
+                            sold_price       = '".$this->sold_price."',
+                            bought_date      = '".$this->bought_date."',
+                            sold_date        = '".$this->sold_date."'
                             WHERE id = '".$this->id."'
                             ");
             }
@@ -691,7 +825,8 @@
             while ($array = mysql_fetch_array($query))
             {
                 $portfolio = new Portfolio($array);
-                $combo .= '<option value="'.$portfolio->getId().'">'.$portfolio->getName().'</option>';
+                $portfolio->runCapitalReport();
+                $combo .= '<option value="'.$portfolio->id.'">'.$portfolio->name.'(Current Cash: $'.round($portfolio->current_cash,2).')</option>';
             }
             $combo .= '</select>';
             return $combo;
